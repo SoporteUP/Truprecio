@@ -1,0 +1,77 @@
+﻿@page "/login"
+@using Truprecio.Shared
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ILocalStorageService LocalStorage
+
+<h3>Iniciar Sesión</h3>
+
+<div class="card p-4 shadow-sm" style="max-width:400px; margin:auto;">
+    <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Correo</label>
+            <InputText class="form-control" @bind-Value="loginModel.Correo" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Contraseña</label>
+            <InputText type="password" class="form-control" @bind-Value="loginModel.Password" />
+        </div>
+
+        <button class="btn btn-primary w-100" type="submit" disabled="@isLoading">
+            @(isLoading ? "Ingresando..." : "Iniciar sesión")
+        </button>
+    </EditForm>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-3">@errorMessage</div>
+}
+
+@code {
+    private LoginRequest loginModel = new();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+                if (loginResponse != null)
+                {
+                    // Guardar el token en local storage
+                    await LocalStorage.SetItemAsync("authToken", loginResponse.Token);
+
+                    // Opcional: guardar correo
+                    await LocalStorage.SetItemAsync("userEmail", loginResponse.Correo);
+
+                    // Redirigir a la página principal
+                    Navigation.NavigateTo("/");
+                }
+            }
+            else
+            {
+                errorMessage = await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al iniciar sesión: {ex.Message}";
+        }
+
+        isLoading = false;
+    }
+}
