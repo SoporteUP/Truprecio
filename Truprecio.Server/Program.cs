@@ -21,6 +21,7 @@ namespace Truprecio.Server
                 opciones.UseSqlServer(builder.Configuration.GetConnectionString("cadenaSQL"));
             });
 
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
